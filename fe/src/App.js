@@ -1,56 +1,105 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 
 function App() {
   const [selectedFile, setSelectedFile] = useState(null);
-  const [restoredImage, setRestoredImage] = useState('');
+  const [originalImage, setOriginalImage] = useState(null);
+  const [blurredImage, setBlurredImage] = useState(null);
+  const [noisyImage, setNoisyImage] = useState(null);
+  const [blurNoisyImage, setBlurNoisyImage] = useState(null);
+  const [restoredBlurred, setRestoredBlurred] = useState(null);
+  const [restoredNoisy, setRestoredNoisy] = useState(null);
+  const [restoredBlurNoisy, setRestoredBlurNoisy] = useState(null);
 
-  useEffect(() => {
-    return () => {
-      selectedFile && URL.revokeObjectURL(selectedFile.preview);
-    }
-  }, [selectedFile])
-
-  const onFileChange = event => {
-    const file = event.target.files[0];
-    file.preview = URL.createObjectURL(file);
-    setSelectedFile(file);
+  const handleFileChange = (event) => {
+    setSelectedFile(event.target.files[0]);
   };
 
-  const onFileUpload = () => {
-    const formData = new FormData();
-    formData.append('image', selectedFile);
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      alert("Please select an image file first.");
+      return;
+    }
 
-    axios.post('http://localhost:5000/restore', formData)
-      .then(response => {
-        console.log('Response:', response.data); // Kiểm tra phản hồi
-        setRestoredImage(`data:image/png;base64,${response.data.restored_image}`);
-      })
-      .catch(error => {
-        console.error('Error uploading image:', error);
+    const formData = new FormData();
+    formData.append("image", selectedFile);
+
+    try {
+      const response = await axios.post("http://localhost:5000/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       });
 
+      // Lấy kết quả trả về từ server và cập nhật state
+      setOriginalImage(response.data.original);
+      setBlurredImage(response.data.blurred);
+      setNoisyImage(response.data.noisy);
+      setBlurNoisyImage(response.data.blur_noisy);
+      setRestoredBlurred(response.data.restored_blurred);
+      setRestoredNoisy(response.data.restored_noisy);
+      setRestoredBlurNoisy(response.data.restored_blur_noisy);
+
+    } catch (error) {
+      console.error("Lỗi khi tải ảnh lên!", error);
+    }
   };
+
   return (
-    <div style={{ textAlign: 'center' }}>
-      <h2>Image Restoration with Wiener Filter</h2>
-      <input type="file" onChange={onFileChange} />
-      <br/>
-      <button onClick={onFileUpload} style={{ padding: 4, marginTop: 16}}>Upload & Restore</button>
-      <br/>
-      <div style={{display: 'flex', justifyContent: 'center', gap: 24}}>
-      {selectedFile && (
-        <div>
-          <h3 style={{fontStyle: 'italic'}}>Ảnh gốc: </h3>
-          <img src={selectedFile.preview} alt='' style={{ width: '500px', height: 'auto'}}/>
+    <div className="App" style={{textAlign: 'center'}}>
+      <h1>Ứng dụng xử lý ảnh</h1>
+      <input type="file" onChange={handleFileChange}/>
+      <button onClick={handleUpload}>Tải lên và xử lý</button>
+
+      <div className="image-results">
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 12}}>
+          {originalImage && 
+            <div>
+              <p style={{fontSize: 20, fontStyle: 'italic', textAlign: 'center'}}>Ảnh gốc</p>
+              <img src={`data:image/png;base64,${originalImage}`} alt="Ảnh gốc" width={'auto'} height={400} />
+            </div>}
+          {blurredImage &&
+            <div>
+              <p style={{fontSize: 20, fontStyle: 'italic', textAlign: 'center'}}>Ảnh làm mờ</p>
+              <img src={`data:image/png;base64,${blurredImage}`} alt="Ảnh làm mờ" width={'auto'} height={400} />
+            </div>}
+          {restoredBlurred &&
+            <div>
+              <p style={{fontSize: 20, fontStyle: 'italic', textAlign: 'center'}}>Ảnh sau phục chế</p>
+              <img src={`data:image/png;base64,${restoredBlurred}`} alt="Phục chế mờ" width={'auto'} height={400} />
+            </div>}
         </div>
-      )}
-      {restoredImage && (
-        <div>
-          <h3 style={{fontStyle: 'italic'}}>Ảnh sau khi lọc: </h3>
-          <img src={restoredImage} alt="Restored" style={{ width: '500px', height: 'auto'}} />
+
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 30}}>
+          {originalImage &&
+            <div>
+              <p style={{fontSize: 20, fontStyle: 'italic', textAlign: 'center'}}>Ảnh gốc</p>
+              <img src={`data:image/png;base64,${originalImage}`} alt="Ảnh gốc" width={'auto'} height={400} />
+            </div>}
+          {noisyImage && <div>
+            <p style={{fontSize: 20, fontStyle: 'italic', textAlign: 'center'}}>Ảnh thêm nhiễu</p>
+            <img src={`data:image/png;base64,${noisyImage}`} alt="Ảnh thêm nhiễu" width={'auto'} height={400} />
+          </div>}
+          {restoredNoisy && <div>
+            <p style={{fontSize: 20, fontStyle: 'italic', textAlign: 'center'}}>Ảnh sau phục chế</p>
+            <img src={`data:image/png;base64,${restoredNoisy}`} alt="Phục chế nhiễu" width={'auto'} height={400} />
+          </div>}
         </div>
-      )}
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 30}}>
+          {originalImage &&
+            <div>
+              <p style={{fontSize: 20, fontStyle: 'italic', textAlign: 'center'}}>Ảnh gốc</p>
+              <img src={`data:image/png;base64,${originalImage}`} alt="Ảnh gốc" width={'auto'} height={400} />
+            </div>}
+          {blurNoisyImage && <div>
+            <p style={{fontSize: 20, fontStyle: 'italic', textAlign: 'center'}}>Ảnh thêm mờ và nhiễu</p>
+            <img src={`data:image/png;base64,${blurNoisyImage}`} alt="Ảnh mờ + nhiễu" width={'auto'} height={400} />
+          </div>}
+          {restoredBlurNoisy && <div>
+            <p style={{fontSize: 20, fontStyle: 'italic', textAlign: 'center'}}>Ảnh sau phục chế</p>
+            <img src={`data:image/png;base64,${restoredBlurNoisy}`} alt="Phục chế mờ + nhiễu" width={'auto'} height={400} />
+          </div>}
+        </div>
       </div>
     </div>
   );
