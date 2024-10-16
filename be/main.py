@@ -35,6 +35,7 @@ def upload_file():
 
     # Phục chế ảnh bằng bộ lọc Wiener
     restored_blurred = wiener(blurred_img, (5, 5))
+    restored_blurred = cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX)
     restored_noisy = wiener(noisy_img, (5, 5))
     restored_blur_noisy = wiener(blur_noisy_img, (5, 5))
 
